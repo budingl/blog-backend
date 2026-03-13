@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  # 后端API
+  backend:
+    build: .
+    container_name: blog-backend
+    environment:
+      DATABASE_URL: postgresql://xiaojiu:xiaojiu@1Panel-postgresql-eMzN:5432/blog
+      JWT_SECRET: HsJn6b7LDU8HoSiR1iS1+CG/f7e8dW8kqy7pkz6LSrs=
+      JWT_EXPIRES_IN: 7d
+    networks:
+      - 1panel-network
+    ports:
+      - "5000:5000"
+    restart: always
+
+networks:
+  1panel-network:
+    external: true
