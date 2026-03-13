@@ -12,12 +12,15 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true  # 新增：格式化SQL输出，便于调试
 
 # 通用服务器配置
 server:
   port: ${SERVER_PORT:5000}
   servlet:
     context-path: /api
+  tomcat:
+    max-threads: 200  # 新增：Tomcat线程数，避免并发问题
 
 # 日志通用配置
 logging:
@@ -25,10 +28,12 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   level:
     root: INFO
+    org.hibernate.SQL: DEBUG  # 新增：打印执行的SQL
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE  # 新增：打印SQL参数
 
 # JWT 通用配置
 jwt:
   secret: ${JWT_SECRET:HsJn6b7LDU8HoSiR1iS1+CG/f7e8dW8kqy7pkz6LSrs=}
-  expiration: ${JWT_EXPIRATION:86400000}
+  expiration: ${JWT_EXPIRATION:86400000}  # 1天
   refresh:
-    expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+    expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7天

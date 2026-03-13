@@ -1,23 +1,33 @@
 # 本地开发环境专属配置
 spring:
-  # 本地数据库配置
-  # 用于本地通过SSH隧道连接服务器中Docker里的PostgreSQL数据库
+  # 本地数据库配置（适配SSH隧道）
   datasource:
-    url: jdbc:postgresql://localhost:5432/blog
+    driver-class-name: org.postgresql.Driver  # 新增：指定驱动类
+    url: jdbc:postgresql://localhost:5432/blog?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&connectTimeout=10000
     username: xiaojiu
     password: xiaojiu
+    # 连接池配置（解决连接超时/重置问题）
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
   # 本地调试配置
   devtools:
     restart:
       enabled: true  # 热部署（本地开发用）
+    livereload:
+      enabled: true  # 新增：前端热重载
 
 # 本地日志配置（更详细）
 logging:
   level:
     com.example: DEBUG  # 本地调试开启 DEBUG 日志
     root: DEBUG
+    org.hibernate: DEBUG  # 新增：Hibernate调试日志
 
-# SSH隧道设置（用于参考）
-# 运行以下命令创建SSH隧道：
-# ssh -L 5432:1Panel-postgresql-eMzN:5432 xiaojiu@118.26.39.65
-# 这将把本地5432端口转发到服务器上的PostgreSQL容器的5432端口
+# SSH隧道使用说明（仅注释，非配置项）
+# 1. 先执行SSH隧道命令：ssh -L 5432:1Panel-postgresql-eMzN:5432 xiaojiu@118.26.39.65
+# 2. 确保隧道保持连接（建议用screen/tmux后台运行）
+# 3. 验证隧道：telnet localhost 5432（返回Connected则正常）
