@@ -1,0 +1,29 @@
+# 服务器生产环境专属配置
+spring:
+  # 生产环境数据源
+  # 用于服务器上的应用连接Docker中的PostgreSQL数据库
+  datasource:
+    url: jdbc:postgresql://1Panel-postgresql-eMzN:5432/blog
+    username: xiaojiu
+    password: xiaojiu
+    hikari:
+      maximum-pool-size: 20  # 生产环境连接池调大
+  # 关闭本地调试功能
+  devtools:
+    restart:
+      enabled: false
+
+# 生产日志配置
+logging:
+  file:
+    name: /var/log/app.log  # 日志路径
+  level:
+    com.example: INFO  # 生产关闭 DEBUG，避免日志过多
+    root: WARN
+
+# 生产环境安全配置
+server:
+  compression:
+    enabled: true  # 开启压缩，优化接口响应
+  tomcat:
+    max-threads: 200  # 适配并发要求

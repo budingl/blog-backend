@@ -39,6 +39,18 @@ public class AuthController {
         String email = request.get("email");
         String password = request.get("password");
 
+        if (username == null || email == null || password == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username, email, and password are required");
+        }
+
+        if (username.length() < 3 || username.length() > 20) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username must be between 3 and 20 characters");
+        }
+
+        if (password.length() < 6) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Password must be at least 6 characters");
+        }
+
         if (userRepository.existsByUsername(username)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username already exists");
         }
@@ -62,6 +74,10 @@ public class AuthController {
         String email = request.get("email");
         String password = request.get("password");
 
+        if (email == null || password == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email and password are required");
+        }
+
         // 查找用户
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
@@ -77,27 +93,77 @@ public class AuthController {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
         String token = jwtUtil.generateToken(userDetails);
+        String refreshToken = jwtUtil.generateRefreshToken(userDetails);
 
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
+        response.put("refreshToken", refreshToken);
 
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(@RequestParam("token") String token) {
-        String username = jwtUtil.extractUsername(token);
-        User user = userRepository.findByUsername(username).orElse(null);
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
 
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        if (refreshToken == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Refresh token is required");
         }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("id", user.getId());
-        response.put("username", user.getUsername());
-        response.put("email", user.getEmail());
+        try {
+            String username = jwtUtil.extractUsername(refreshToken);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-        return ResponseEntity.ok(response);
+            if (jwtUtil.validateToken(refreshToken, userDetails)) {
+                String newToken = jwtUtil.generateToken(userDetails);
+                String newRefreshToken = jwtUtil.generateRefreshToken(userDetails);
+
+                Map<String, String> response = new HashMap<>();
+                response.put("token", newToken);
+                response.put("refreshToken", newRefreshToken);
+
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token");
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String token) {
+        try {
+            if (token != null && token.startsWith("Bearer ")) {
+                String jwt = token.substring(7);
+                jwtUtil.revokeToken(jwt);
+                return ResponseEntity.ok("Logged out successfully");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token");
+        }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(@RequestParam("token") String token) {
+        try {
+            String username = jwtUtil.extractUsername(token);
+            User user = userRepository.findByUsername(username).orElse(null);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId());
+            response.put("username", user.getUsername());
+            response.put("email", user.getEmail());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token");
+        }
     }
 }
